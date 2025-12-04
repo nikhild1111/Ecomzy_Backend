@@ -10,7 +10,38 @@
 // Let me know if you want a reusable filter-building function!
 
 
+// ✅ MongoDB rule (VERY IMPORTANT)
+// ✔ $or conditions = ANY condition can match
+// ✔ BUT all other fields outside $or must also match
+// 🔥 Your Query:
+// {
+//   $or: [
+//     { title: /iphone/i },
+//     { brand: /iphone/i },
+//   ],
+//   type: "mobile",
+//   brand: { $in: ["Apple"] },
+//   price: { $lte: 40000 },
+//   discount: { $gte: 10 },
+//   rating: { $gte: 4 },
+//   inStock: true
+// }
+// This means:
+// ❗ MongoDB will return a product ONLY if:
+// Condition A (from $or):
+// ✔ (title contains "iphone"
+// OR
+// ✔ brand contains "iphone")
+// AND
+// Condition B (all other filters MUST match):
+// ✔ type = "mobile"
+// ✔ brand IN ["Apple"]
+// ✔ price ≤ 40000
+// ✔ discount ≥ 10
+// ✔ rating ≥ 4
+// ✔ inStock = true
 
+// 👉 ALL of these MUST match
 
 const Product = require('../models/Product');
 
