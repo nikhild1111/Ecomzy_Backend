@@ -292,6 +292,15 @@ console.log(orderCount);
   }
 };
 
+exports.refundPayment = async (paymentId, amount) => {
+  return await razorpay.payments.refund(paymentId, {
+    amount: Math.round(amount * 100), // paise
+  });
+};
+
+
+
+
 
 // --------------------
 // Payment Failure (Optional)

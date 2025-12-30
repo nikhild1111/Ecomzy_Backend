@@ -120,7 +120,15 @@ const orderSchema = new mongoose.Schema({
     razorpayOrderId: String,
     razorpayPaymentId: String,
     razorpaySignature: String,
+  },refundInfo: {
+  refundId: String,
+  amount: Number,
+  status: {
+    type: String,
+    enum: ["pending", "processed", "failed"]
   },
+  refundedAt: Date
+},
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

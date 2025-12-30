@@ -10,7 +10,7 @@ const cancelledTemplate = require('../utils/emailTemplates/Ordercancelled');
 const pendingTemplate = require('../utils/emailTemplates/Orderpending');
 const insufficientStockTemplate = require('../utils/emailTemplates/insufficientStock');
 const confirmedTemplate = require('../utils/emailTemplates/Adminconfirmed');
-
+const { refundPayment } = require("../controllers/orderController");
 // Get User Orders
 // const getUserOrders = async (req, res) => {
 //   try {
@@ -175,28 +175,52 @@ const cancelOrder = async (req, res) => {
     const order = await Order.findOne({ _id: orderId, userId });
 
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
 
-    if (order.status === 'shipped' || order.status === 'cancelled') {
-      return res.status(400).json({ message: 'Order cannot be cancelled' });
+    // ❌ Cannot cancel shipped or already cancelled orders
+    if (order.orderStatus === "shipped" || order.orderStatus === "cancelled") {
+      return res.status(400).json({
+        message: "Order cannot be cancelled at this stage",
+      });
     }
 
-    order.status = 'cancelled';
-    order.orderStatus = 'cancelled';
+    // ✅ Initiate refund if payment exists
+    if (order.paymentInfo?.razorpayPaymentId) {
+      const refund = await razorpay.payments.refund(
+        order.paymentInfo.razorpayPaymentId,
+        {
+          amount: Math.round(order.totalAmount * 100), // in paise
+        }
+      );
+
+      order.refundInfo = {
+        refundId: refund.id,
+        amount: order.totalAmount,
+        status: refund.status,
+        refundedAt: new Date(),
+      };
+    }
+
+    // ✅ Update order status
+    order.orderStatus = "cancelled";
     await order.save();
 
     res.status(200).json({
       success: true,
-      message: 'Order cancelled successfully',
-      order
+      message: "Order cancelled and refund initiated successfully",
+      order,
     });
 
   } catch (error) {
-    console.error('Error cancelling order:', error);
-    res.status(500).json({ message: 'Error cancelling order', error: error.message });
+    console.error("Error cancelling order:", error);
+    res.status(500).json({
+      message: "Error cancelling order",
+      error: error.message,
+    });
   }
 };
+
 
 // ===========================
 // ADMIN FUNCTIONS
@@ -455,17 +479,35 @@ const updateOrderStatus = async (req, res) => {
     }
 
     // ✅ Handle "cancelled"
-    else if (orderStatus === "cancelled") {
-      order.orderStatus = "cancelled";
-      await order.save();
+else if (orderStatus === "cancelled") {
 
-      await mailSender(
-        user.email,
-        "❌ Order Cancelled - ECOMZY",
-        "Your order has been cancelled.",
-        cancelledTemplate({ user, product, order })
-      );
-    }
+  // 1️⃣ Refund only if payment done
+  if (order.paymentInfo?.razorpayPaymentId) {
+    const refund = await refundPayment(
+      order.paymentInfo.razorpayPaymentId,
+      order.totalAmount
+    );
+
+    order.refundInfo = {
+      refundId: refund.id,
+      amount: order.totalAmount,
+      status: refund.status,
+      refundedAt: new Date(),
+    };
+  }
+
+  // 2️⃣ Update order status
+  order.orderStatus = "cancelled";
+  await order.save();
+
+  // 3️⃣ Email user
+  await mailSender(
+    user.email,
+    "❌ Order Cancelled & Refunded - ECOMZY",
+    "Your order has been cancelled and refund initiated.",
+    cancelledTemplate({ user, product, order })
+  );
+}
 
     // ✅ Handle "pending"
     else if (orderStatus === "pending") {
