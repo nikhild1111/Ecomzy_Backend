@@ -92,3 +92,60 @@ addresses: {
 { timestamps: true });  // ✅ Properly placed schema options
 
 module.exports = mongoose.model("User", userSchema);
+
+
+
+
+// 🔹 How data gets stored in MongoDB (in your case)
+
+// 1️⃣ DB connects
+
+// mongoose.connect(DATABASE_URL)
+
+
+// 2️⃣ Model is created
+
+// mongoose.model("User", userSchema)
+// mongoose keep conenction alive and server runs then 
+// → MongoDB auto-creates users collection in the mongodaatbase
+
+// 3️⃣ You call
+
+// User.create({ name, email, password, role, phone })
+
+
+// 4️⃣ Mongoose does automatically
+
+// Checks schema
+
+// Adds defaults:
+
+// addresses: []
+
+// totalSpends: 0
+
+// totalOrders: 0
+
+// Generates _id
+
+// Adds createdAt, updatedAt
+
+// 5️⃣ MongoDB stores one document
+
+// {
+//   name,
+//   email,
+//   password,
+//   role,
+//   phone,
+//   addresses: [],
+//   totalSpends: 0,
+//   totalOrders: 0
+// }
+
+
+// 6️⃣ Returned user = stored document
+
+// 🔹 Important line to remember (Interview)
+
+// Model.create() validates data, applies defaults, and inserts the document into MongoDB.

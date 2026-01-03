@@ -35,6 +35,7 @@ credentials: true, // ✅ allow cookies
 //     credentials: true
 //   }));
 
+
 // Add this line to parse JSON request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // to handle form-data
